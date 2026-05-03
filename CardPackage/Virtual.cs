@@ -15,7 +15,7 @@ namespace FinalProject.CardPackage
             if (!string.IsNullOrEmpty(GetPIN()) &&
                 !string.IsNullOrEmpty(GetCardNumber()) &&
                 !string.IsNullOrEmpty(GetCV2()) &&
-                !string.IsNullOrEmpty(GetExpirationdate()))
+                !string.IsNullOrEmpty(GetExpirationDate()))
             {
                 this.valid = true;
             }
