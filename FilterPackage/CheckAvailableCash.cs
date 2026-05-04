@@ -1,29 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FinalProject.FilterPackage
+﻿namespace FinalProject.FilterPackage
 {
-    public class CheckAvailableCash: Filter
+    public class CheckAvailableCash : Filter
     {
         public CheckAvailableCash() { }
+
         public override bool Check()
         {
-            if (this.data.GetCash() <= this.transaction.GetAmount())
+            if (this.data == null || this.transaction == null)
+            {
+                return false;
+            }
+
+            if (this.transaction.GetAmount() > this.data.GetCash())
             {
                 Notify();
                 return false;
             }
-            else
-            {
-                return true;
-            }
+
+            return true;
         }
+
         private void Notify()
         {
-            this.company.Notify();
+            if (this.company != null)
+            {
+                this.company.Notify();
+            }
         }
     }
 }

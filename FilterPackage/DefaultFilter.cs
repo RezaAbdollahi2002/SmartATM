@@ -1,25 +1,32 @@
-﻿using FinalProject.TransactionPackage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FinalProject.FilterPackage
+﻿namespace FinalProject.FilterPackage
 {
-    public class DefaultFilter: Filter
+    public class DefaultFilter : Filter
     {
-        public DefaultFilter() { }  
+        public DefaultFilter() { }
+
         public override bool Check()
         {
-            if (this.transaction.GetCard() == null || this.transaction.GetAmount() <= 0 || this.transaction.GetTransactionId() == null)
+            if (this.transaction == null)
             {
                 return false;
             }
-            else
+
+            if (this.transaction.GetCard() == null)
             {
-                return true;
+                return false;
             }
+
+            if (this.transaction.GetAmount() <= 0)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(this.transaction.GetTransactionId()))
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
