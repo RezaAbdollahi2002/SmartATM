@@ -1,9 +1,8 @@
 ﻿using FinalProject.CardPackage;
-using FinalProject.TransactionPackage;
 using System;
 using System.Collections.Generic;
 
-namespace FinalProject.TransactionPackages
+namespace FinalProject.TransactionPackage
 {
     public class ReadAndWrite
     {
@@ -21,18 +20,11 @@ namespace FinalProject.TransactionPackages
 
         public void SaveTransaction(Transaction transaction)
         {
-            if (transaction == null)
-            {
-                Console.WriteLine("Transaction is null.");
-                return;
-            }
-
+            if (transaction == null) return;
             lock (transactionLock)
             {
                 transactions.Add(transaction);
             }
-
-            Console.WriteLine("Transaction saved.");
         }
 
         public Transaction ReadTransaction(string transactionId)
@@ -47,25 +39,24 @@ namespace FinalProject.TransactionPackages
                     }
                 }
             }
-
-            Console.WriteLine("Transaction not found.");
             return null;
+        }
+
+        public List<Transaction> GetTransactions()
+        {
+            lock (transactionLock)
+            {
+                return new List<Transaction>(transactions);
+            }
         }
 
         public void SaveAccount(Account account)
         {
-            if (account == null)
-            {
-                Console.WriteLine("Account is null.");
-                return;
-            }
-
+            if (account == null) return;
             lock (accountLock)
             {
                 accounts.Add(account);
             }
-
-            Console.WriteLine("Account saved.");
         }
 
         public Account ReadAccount(string accountId)
@@ -80,18 +71,12 @@ namespace FinalProject.TransactionPackages
                     }
                 }
             }
-
-            Console.WriteLine("Account not found.");
             return null;
         }
 
         public void UpdateAccount(Account account)
         {
-            if (account == null)
-            {
-                Console.WriteLine("Account is null.");
-                return;
-            }
+            if (account == null) return;
 
             lock (accountLock)
             {
@@ -100,13 +85,11 @@ namespace FinalProject.TransactionPackages
                     if (accounts[i].GetAccountId() == account.GetAccountId())
                     {
                         accounts[i] = account;
-                        Console.WriteLine("Account updated.");
                         return;
                     }
                 }
 
                 accounts.Add(account);
-                Console.WriteLine("Account not found. New account saved.");
             }
         }
     }

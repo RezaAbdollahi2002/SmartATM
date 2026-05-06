@@ -1,9 +1,6 @@
-﻿using FinalProject.FilterPackage;
-using System;
+﻿using FinalProject.ATMPackage;
+using FinalProject.FilterPackage;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace FinalProject.CompanyPackage
@@ -11,19 +8,39 @@ namespace FinalProject.CompanyPackage
     public class Company : CompanyIF
     {
         private List<ObservableIF> atms;
-        public Company() {
+        private Data data;
+
+        public Company()
+        {
             atms = new List<ObservableIF>();
         }
+
         public void AddATM(ObservableIF atm)
         {
-        this.atms.Add(atm);
+            if (atm != null && !atms.Contains(atm))
+            {
+                atms.Add(atm);
+            }
         }
+
         public List<ObservableIF> GetATM()
         {
-            return this.atms;
+            return atms;
         }
-        public void Notify() {
-            MessageBox.Show("The company was notified.");
+
+        public void SetData(Data data)
+        {
+            this.data = data;
+        }
+
+        public Data GetData()
+        {
+            return data;
+        }
+
+        public void Notify()
+        {
+            MessageBox.Show("The company was notified because the ATM does not have enough available cash.", "Company Notification");
         }
     }
 }

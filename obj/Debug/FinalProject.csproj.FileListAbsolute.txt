@@ -7,4 +7,3 @@ C:\Users\danva\Source\Repos\SmartATM\bin\Debug\FinalProject.exe
 C:\Users\danva\Source\Repos\SmartATM\bin\Debug\FinalProject.pdb
 C:\Users\danva\Source\Repos\SmartATM\obj\Debug\FinalProject.exe
 C:\Users\danva\Source\Repos\SmartATM\obj\Debug\FinalProject.pdb
-C:\Users\danva\Source\Repos\SmartATM\obj\Debug\FinalProject.exe.config

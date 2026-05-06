@@ -6,17 +6,10 @@
 
         public override bool Check()
         {
-            if (this.data == null || this.transaction == null)
-            {
-                return false;
-            }
+            if (data == null || transaction == null) return false;
+            if (transaction.GetAmount() > data.GetMaximumCashOut()) return false;
 
-            if (this.transaction.GetAmount() > this.data.GetMaximumCashOut())
-            {
-                return false;
-            }
-
-            return true;
+            return CheckNext();
         }
     }
 }

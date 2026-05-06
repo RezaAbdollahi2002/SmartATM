@@ -6,25 +6,22 @@
 
         public override bool Check()
         {
-            if (this.data == null || this.transaction == null)
-            {
-                return false;
-            }
+            if (data == null || transaction == null) return false;
 
-            if (this.transaction.GetAmount() > this.data.GetCash())
+            if (transaction.GetAmount() > data.GetCash())
             {
                 Notify();
                 return false;
             }
 
-            return true;
+            return CheckNext();
         }
 
         private void Notify()
         {
-            if (this.company != null)
+            if (company != null)
             {
-                this.company.Notify();
+                company.Notify();
             }
         }
     }

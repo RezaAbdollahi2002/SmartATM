@@ -13,44 +13,29 @@ namespace FinalProject.FilterPackage
 
         public Filter() { }
 
-        public void SetTransaction(TransactionIF transaction)
-        {
-            this.transaction = transaction;
-        }
+        public void SetTransaction(TransactionIF transaction) { this.transaction = transaction; }
+        public TransactionIF GetTransaction() { return transaction; }
 
-        public TransactionIF GetTransaction()
-        {
-            return this.transaction;
-        }
+        public void SetFilter(FilterIF filter) { this.filter = filter; }
+        public FilterIF GetFilter() { return filter; }
 
-        public void SetFilter(FilterIF filter)
-        {
-            this.filter = filter;
-        }
+        public void Register(CompanyIF company) { this.company = company; }
+        public void RemoveObserver() { this.company = null; }
 
-        public FilterIF GetFilter()
-        {
-            return this.filter;
-        }
+        public void SetData(Data data) { this.data = data; }
+        public Data GetData() { return data; }
 
-        public void Register(CompanyIF company)
+        protected bool CheckNext()
         {
-            this.company = company;
-        }
+            if (filter == null)
+            {
+                return true;
+            }
 
-        public void RemoveObserver()
-        {
-            this.company = null;
-        }
-
-        public void SetData(Data data)
-        {
-            this.data = data;
-        }
-
-        public Data GetData()
-        {
-            return this.data;
+            filter.SetTransaction(transaction);
+            filter.SetData(data);
+            filter.Register(company);
+            return filter.Check();
         }
 
         public abstract bool Check();
