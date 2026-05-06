@@ -1,4 +1,4 @@
-﻿using FinalProject.FilterPackage;
+﻿using FinalProject.ATMPackage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 
 namespace FinalProject.CompanyPackage
 {
-    public interface CompanyIF 
+    public interface ObserverIF
     {
         void AddATM(ObservableIF atm);
-        List<ObservableIF> GetATM();
+        List<ObservableIF> GetATMs();
         void Notify();
+
     }
 }

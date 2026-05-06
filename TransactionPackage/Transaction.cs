@@ -46,12 +46,10 @@ namespace FinalProject.TransactionPackage
             }
 
             Account account = card.GetAccount();
-            lock (account)
-            {
-                account.SetBalance(account.GetBalance() + amount);
-            }
 
+            account.Deposit(amount);
             data.DepositCash(amount);
+
             status = true;
         }
 
@@ -64,21 +62,17 @@ namespace FinalProject.TransactionPackage
             }
 
             Account account = card.GetAccount();
-            lock (account)
+
+            if (!data.TryWithdrawCash(amount))
             {
-                if (account.GetBalance() < amount)
-                {
-                    status = false;
-                    return;
-                }
+                status = false;
+                return;
+            }
 
-                if (!data.TryWithdrawCash(amount))
-                {
-                    status = false;
-                    return;
-                }
-
-                account.SetBalance(account.GetBalance() - amount);
+            if (!account.Withdraw(amount))
+            {
+                status = false;
+                return;
             }
 
             status = true;
@@ -101,23 +95,13 @@ namespace FinalProject.TransactionPackage
                 return;
             }
 
-            object firstLock = from.GetHashCode() < to.GetHashCode() ? from : to;
-            object secondLock = from.GetHashCode() < to.GetHashCode() ? to : from;
-
-            lock (firstLock)
+            if (!from.Withdraw(amount))
             {
-                lock (secondLock)
-                {
-                    if (from.GetBalance() < amount)
-                    {
-                        status = false;
-                        return;
-                    }
-
-                    from.SetBalance(from.GetBalance() - amount);
-                    to.SetBalance(to.GetBalance() + amount);
-                }
+                status = false;
+                return;
             }
+
+            to.Deposit(amount);
 
             status = true;
         }

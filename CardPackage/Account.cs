@@ -1,4 +1,5 @@
 ﻿using System;
+using FinalProject.TransactionPackages;
 
 namespace FinalProject.CardPackage
 {
@@ -6,9 +7,24 @@ namespace FinalProject.CardPackage
     {
         private string accountId;
         private decimal balance;
-        private readonly object balanceLock = new object();
 
-        public Account() { }
+        // Read/Write lock manager
+        private ReadWrite readWrite;
+
+        public Account()
+        {
+            readWrite = new ReadWrite();
+        }
+
+        public void SetReadWrite(ReadWrite readWrite)
+        {
+            this.readWrite = readWrite;
+        }
+
+        public ReadWrite GetReadWrite()
+        {
+            return readWrite;
+        }
 
         public void SetAccountId(string accountId)
         {
@@ -22,17 +38,76 @@ namespace FinalProject.CardPackage
 
         public void SetBalance(decimal balance)
         {
-            lock (balanceLock)
+            readWrite.WriteLock();
+
+            try
             {
                 this.balance = balance;
+            }
+            finally
+            {
+                readWrite.Done();
             }
         }
 
         public decimal GetBalance()
         {
-            lock (balanceLock)
+            readWrite.ReadLock();
+
+            try
             {
                 return this.balance;
+            }
+            finally
+            {
+                readWrite.Done();
+            }
+        }
+
+        public void Deposit(decimal amount)
+        {
+            if (amount <= 0)
+            {
+                Console.WriteLine("Invalid deposit amount.");
+                return;
+            }
+
+            readWrite.WriteLock();
+
+            try
+            {
+                balance += amount;
+            }
+            finally
+            {
+                readWrite.Done();
+            }
+        }
+
+        public bool Withdraw(decimal amount)
+        {
+            if (amount <= 0)
+            {
+                Console.WriteLine("Invalid withdrawal amount.");
+                return false;
+            }
+
+            readWrite.WriteLock();
+
+            try
+            {
+                if (balance < amount)
+                {
+                    Console.WriteLine("Insufficient balance.");
+                    return false;
+                }
+
+                balance -= amount;
+                return true;
+            }
+            finally
+            {
+                readWrite.Done();
             }
         }
     }

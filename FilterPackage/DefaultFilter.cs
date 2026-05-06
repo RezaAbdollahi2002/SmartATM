@@ -1,10 +1,12 @@
-﻿namespace FinalProject.FilterPackage
+﻿using FinalProject.TransactionPackage;
+
+namespace FinalProject.FilterPackage
 {
-    public class DefaultFilter : Filter
+    public class DefaultFilter : FilterIF
     {
         public DefaultFilter() { }
 
-        public override bool Check()
+        public bool Check(TransactionIF transaction)
         {
             if (transaction == null) return false;
             if (transaction.GetCard() == null) return false;
@@ -12,8 +14,7 @@
             if (transaction.GetCard().GetAccount() == null) return false;
             if (transaction.GetAmount() <= 0) return false;
             if (string.IsNullOrWhiteSpace(transaction.GetTransactionId())) return false;
-
-            return CheckNext();
+            return true;    
         }
     }
 }

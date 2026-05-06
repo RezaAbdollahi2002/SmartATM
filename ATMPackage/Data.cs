@@ -1,12 +1,28 @@
-﻿namespace FinalProject.ATMPackage
+﻿using FinalProject.CompanyPackage;
+
+namespace FinalProject.ATMPackage
 {
-    public class Data
+    public class Data: ObservableIF
     {
         private decimal availableCash;
         private decimal maximumCashOut;
+        private ObserverIF observer;
         private readonly object dataLock = new object();
 
         public Data() { }
+
+
+        public void Register(ObserverIF observer) {
+        this.observer = observer;
+        }
+        public ObserverIF GetObserver()
+        {
+            return observer;
+        }
+        public void Notify()
+        {
+            observer.Notify();
+        }
 
         public void SetCash(decimal cash)
         {

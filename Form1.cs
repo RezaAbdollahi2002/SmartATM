@@ -12,26 +12,35 @@ namespace FinalProject
 {
     public partial class Form1 : Form
     {
-        private Account checkingAccount;
-        private Account savingsAccount;
-        private Account externalTransferAccount;
+        private const string CheckingAccountId = "CHECKING-1001";
+        private const string SavingsAccountId = "SAVINGS-1002";
+        private const string ExternalAccountId = "EXTERNAL-2001";
+
+        private static bool backendInitialized = false;
+
+        private static Account checkingAccount;
+        private static Account savingsAccount;
+        private static Account externalTransferAccount;
+
+        private static Data atmData;
+        private static Company company;
+
+        private readonly string userName;
 
         private CardIF activeCard;
         private CardIF transferCard;
 
-        private Data atmData;
-        private Company company;
-        private ReadAndWrite readAndWrite;
-
-        private Label titleLabel;
         private Label balanceLabel;
         private Label savingsLabel;
         private Label transferLabel;
         private Label atmCashLabel;
         private Label maxCashLabel;
         private Label cardStatusLabel;
-        private Label physicalInfoLabel;
         private Label selectedAccountLabel;
+        private Label cardModeLabel;
+
+        private Panel physicalCardPanel;
+        private Panel virtualCardPanel;
 
         private TextBox pinBox;
         private TextBox cardNumberBox;
@@ -45,37 +54,31 @@ namespace FinalProject
         private RadioButton physicalRadio;
         private RadioButton virtualRadio;
 
-        private Button createCardButton;
-        private Button depositButton;
-        private Button withdrawButton;
-        private Button transferButton;
-        private Button refreshButton;
-        private Button clearLogButton;
-
         private ListBox logBox;
 
-        public Form1()
+        public Form1() : this("User")
         {
+        }
+
+        public Form1(string userName)
+        {
+            this.userName = userName;
+
             InitializeComponent();
-            SetupBackend();
+            InitializeSharedBackend();
             BuildFrontend();
-            UpdateCardMenu();
+            UpdateCardView();
             RefreshDisplay();
         }
 
-        private void SetupBackend()
+        private static void InitializeSharedBackend()
         {
-            checkingAccount = new Account();
-            checkingAccount.SetAccountId("CHECKING-1001");
-            checkingAccount.SetBalance(750.00m);
+            if (backendInitialized)
+                return;
 
-            savingsAccount = new Account();
-            savingsAccount.SetAccountId("SAVINGS-1002");
-            savingsAccount.SetBalance(1200.00m);
-
-            externalTransferAccount = new Account();
-            externalTransferAccount.SetAccountId("EXTERNAL-2001");
-            externalTransferAccount.SetBalance(300.00m);
+            checkingAccount = CreateAccount(CheckingAccountId, 750.00m);
+            savingsAccount = CreateAccount(SavingsAccountId, 1200.00m);
+            externalTransferAccount = CreateAccount(ExternalAccountId, 300.00m);
 
             atmData = new Data();
             atmData.SetCash(2500.00m);
@@ -84,28 +87,40 @@ namespace FinalProject
             company = new Company();
             company.SetData(atmData);
 
-            readAndWrite = new ReadAndWrite();
-            readAndWrite.SaveAccount(checkingAccount);
-            readAndWrite.SaveAccount(savingsAccount);
-            readAndWrite.SaveAccount(externalTransferAccount);
+            atmData.Register(company);
+            company.AddATM(atmData);
+
+            backendInitialized = true;
+        }
+
+        private static Account CreateAccount(string accountId, decimal balance)
+        {
+            Account account = new Account();
+            account.SetAccountId(accountId);
+            account.SetBalance(balance);
+            return account;
         }
 
         private void BuildFrontend()
         {
-            this.Controls.Clear();
-            this.Text = "SmartATM";
-            this.ClientSize = new Size(1040, 720);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.FromArgb(235, 240, 245);
-            this.Font = new Font("Segoe UI", 9);
+            Controls.Clear();
 
-            titleLabel = new Label();
-            titleLabel.Text = "SmartATM Banking System";
-            titleLabel.Font = new Font("Segoe UI", 24, FontStyle.Bold);
-            titleLabel.ForeColor = Color.FromArgb(25, 55, 95);
-            titleLabel.AutoSize = true;
-            titleLabel.Location = new Point(30, 20);
-            this.Controls.Add(titleLabel);
+            Text = $"SmartATM - {userName}";
+            ClientSize = new Size(1040, 720);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(235, 240, 245);
+            Font = new Font("Segoe UI", 9);
+
+            Label titleLabel = new Label
+            {
+                Text = $"SmartATM Banking System - {userName}",
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                ForeColor = Color.FromArgb(25, 55, 95),
+                AutoSize = true,
+                Location = new Point(30, 20)
+            };
+
+            Controls.Add(titleLabel);
 
             BuildCardPanel();
             BuildTransactionPanel();
@@ -115,300 +130,339 @@ namespace FinalProject
 
         private void BuildCardPanel()
         {
-            GroupBox cardGroup = new GroupBox();
-            cardGroup.Text = "Card Program / Factory";
-            cardGroup.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            cardGroup.Location = new Point(30, 85);
-            cardGroup.Size = new Size(455, 345);
-            this.Controls.Add(cardGroup);
+            GroupBox cardGroup = CreateGroupBox("Card Program / Factory", 30, 85, 455, 345);
 
-            physicalRadio = new RadioButton();
-            physicalRadio.Text = "Physical Card";
-            physicalRadio.Location = new Point(25, 35);
-            physicalRadio.Size = new Size(160, 25);
-            physicalRadio.Checked = true;
+            physicalRadio = new RadioButton
+            {
+                Text = "Physical Card",
+                Location = new Point(25, 35),
+                Size = new Size(160, 25),
+                Checked = true
+            };
             physicalRadio.CheckedChanged += CardTypeChanged;
-            cardGroup.Controls.Add(physicalRadio);
 
-            virtualRadio = new RadioButton();
-            virtualRadio.Text = "Virtual Card";
-            virtualRadio.Location = new Point(225, 35);
-            virtualRadio.Size = new Size(160, 25);
+            virtualRadio = new RadioButton
+            {
+                Text = "Virtual Card",
+                Location = new Point(225, 35),
+                Size = new Size(160, 25)
+            };
             virtualRadio.CheckedChanged += CardTypeChanged;
-            cardGroup.Controls.Add(virtualRadio);
 
-            physicalInfoLabel = new Label();
-            physicalInfoLabel.Location = new Point(25, 65);
-            physicalInfoLabel.Size = new Size(390, 35);
-            physicalInfoLabel.ForeColor = Color.FromArgb(25, 55, 95);
-            physicalInfoLabel.Font = new Font("Segoe UI", 9, FontStyle.Italic);
-            cardGroup.Controls.Add(physicalInfoLabel);
+            cardModeLabel = new Label
+            {
+                Location = new Point(25, 65),
+                Size = new Size(390, 35),
+                ForeColor = Color.FromArgb(25, 55, 95),
+                Font = new Font("Segoe UI", 9, FontStyle.Italic)
+            };
 
-            Label accountLabel = new Label();
-            accountLabel.Text = "Source Account:";
-            accountLabel.Location = new Point(25, 110);
-            accountLabel.Size = new Size(130, 25);
-            cardGroup.Controls.Add(accountLabel);
-
-            sourceAccountBox = new ComboBox();
-            sourceAccountBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            sourceAccountBox.Location = new Point(175, 108);
-            sourceAccountBox.Size = new Size(220, 25);
+            sourceAccountBox = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 108),
+                Size = new Size(220, 25)
+            };
             sourceAccountBox.Items.Add("Checking");
             sourceAccountBox.Items.Add("Savings");
             sourceAccountBox.SelectedIndex = 0;
-            sourceAccountBox.SelectedIndexChanged += SourceAccountBox_SelectedIndexChanged;
-            cardGroup.Controls.Add(sourceAccountBox);
+            sourceAccountBox.SelectedIndexChanged += SourceAccountChanged;
 
-            Label pinLabel = new Label();
-            pinLabel.Text = "PIN:";
-            pinLabel.Location = new Point(25, 145);
-            pinLabel.Size = new Size(130, 25);
-            cardGroup.Controls.Add(pinLabel);
+            pinBox = new TextBox
+            {
+                Location = new Point(175, 145),
+                Size = new Size(220, 25),
+                Text = "1234"
+            };
 
-            pinBox = new TextBox();
-            pinBox.Location = new Point(175, 145);
-            pinBox.Size = new Size(220, 25);
-            pinBox.Text = "1234";
-            cardGroup.Controls.Add(pinBox);
+            BuildPhysicalCardView(cardGroup);
+            BuildVirtualCardView(cardGroup);
 
-            Label numberLabel = new Label();
-            numberLabel.Text = "Card Number:";
-            numberLabel.Location = new Point(25, 180);
-            numberLabel.Size = new Size(130, 25);
-            cardGroup.Controls.Add(numberLabel);
-
-            cardNumberBox = new TextBox();
-            cardNumberBox.Location = new Point(175, 180);
-            cardNumberBox.Size = new Size(220, 25);
-            cardNumberBox.Text = "1234-5678-9999-0000";
-            cardGroup.Controls.Add(cardNumberBox);
-
-            Label cv2Label = new Label();
-            cv2Label.Text = "CV2:";
-            cv2Label.Location = new Point(25, 215);
-            cv2Label.Size = new Size(130, 25);
-            cardGroup.Controls.Add(cv2Label);
-
-            cv2Box = new TextBox();
-            cv2Box.Location = new Point(175, 215);
-            cv2Box.Size = new Size(220, 25);
-            cv2Box.Text = "123";
-            cardGroup.Controls.Add(cv2Box);
-
-            Label expLabel = new Label();
-            expLabel.Text = "Expiration:";
-            expLabel.Location = new Point(25, 250);
-            expLabel.Size = new Size(130, 25);
-            cardGroup.Controls.Add(expLabel);
-
-            expirationBox = new TextBox();
-            expirationBox.Location = new Point(175, 250);
-            expirationBox.Size = new Size(220, 25);
-            expirationBox.Text = "12/28";
-            cardGroup.Controls.Add(expirationBox);
-
-            createCardButton = new Button();
-            createCardButton.Text = "Create / Validate Card";
-            createCardButton.Location = new Point(115, 295);
-            createCardButton.Size = new Size(220, 35);
-            createCardButton.BackColor = Color.FromArgb(40, 100, 180);
-            createCardButton.ForeColor = Color.White;
-            createCardButton.FlatStyle = FlatStyle.Flat;
+            Button createCardButton = CreateColoredButton(
+                "Create / Validate Card",
+                115,
+                295,
+                220,
+                35,
+                Color.FromArgb(40, 100, 180)
+            );
             createCardButton.Click += CreateCardButton_Click;
+
+            cardGroup.Controls.Add(physicalRadio);
+            cardGroup.Controls.Add(virtualRadio);
+            cardGroup.Controls.Add(cardModeLabel);
+            cardGroup.Controls.Add(CreateFieldLabel("Source Account:", 25, 110));
+            cardGroup.Controls.Add(sourceAccountBox);
+            cardGroup.Controls.Add(CreateFieldLabel("PIN:", 25, 145));
+            cardGroup.Controls.Add(pinBox);
             cardGroup.Controls.Add(createCardButton);
+        }
+
+        private void BuildPhysicalCardView(GroupBox cardGroup)
+        {
+            physicalCardPanel = new Panel
+            {
+                Location = new Point(25, 180),
+                Size = new Size(395, 95),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(245, 248, 252)
+            };
+
+            Label title = new Label
+            {
+                Text = "Physical Card View",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(25, 55, 95),
+                Location = new Point(15, 10),
+                Size = new Size(250, 25)
+            };
+
+            Label info = new Label
+            {
+                Text = "Card number, CV2, and expiration are read automatically from the card chip.",
+                Location = new Point(15, 40),
+                Size = new Size(350, 40)
+            };
+
+            physicalCardPanel.Controls.Add(title);
+            physicalCardPanel.Controls.Add(info);
+            cardGroup.Controls.Add(physicalCardPanel);
+        }
+
+        private void BuildVirtualCardView(GroupBox cardGroup)
+        {
+            virtualCardPanel = new Panel
+            {
+                Location = new Point(25, 175),
+                Size = new Size(395, 110),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(250, 250, 255)
+            };
+
+            cardNumberBox = CreateSmallPanelTextBox(135, 8, "1234-5678-9999-0000");
+            cv2Box = CreateSmallPanelTextBox(135, 40, "123");
+            expirationBox = CreateSmallPanelTextBox(135, 72, "12/28");
+
+            virtualCardPanel.Controls.Add(CreateSmallPanelLabel("Card Number:", 10, 10));
+            virtualCardPanel.Controls.Add(cardNumberBox);
+            virtualCardPanel.Controls.Add(CreateSmallPanelLabel("CV2:", 10, 42));
+            virtualCardPanel.Controls.Add(cv2Box);
+            virtualCardPanel.Controls.Add(CreateSmallPanelLabel("Expiration:", 10, 74));
+            virtualCardPanel.Controls.Add(expirationBox);
+
+            cardGroup.Controls.Add(virtualCardPanel);
         }
 
         private void BuildTransactionPanel()
         {
-            GroupBox transactionGroup = new GroupBox();
-            transactionGroup.Text = "Transaction Controls";
-            transactionGroup.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            transactionGroup.Location = new Point(525, 85);
-            transactionGroup.Size = new Size(455, 345);
-            this.Controls.Add(transactionGroup);
+            GroupBox transactionGroup = CreateGroupBox("Transaction Controls", 525, 85, 455, 345);
 
-            Label amountLabel = new Label();
-            amountLabel.Text = "Amount:";
-            amountLabel.Location = new Point(25, 45);
-            amountLabel.Size = new Size(130, 25);
-            transactionGroup.Controls.Add(amountLabel);
+            amountBox = new TextBox
+            {
+                Location = new Point(175, 45),
+                Size = new Size(220, 25),
+                Text = "50"
+            };
 
-            amountBox = new TextBox();
-            amountBox.Location = new Point(175, 45);
-            amountBox.Size = new Size(220, 25);
-            amountBox.Text = "50";
-            transactionGroup.Controls.Add(amountBox);
-
-            Label targetLabel = new Label();
-            targetLabel.Text = "Transfer Target:";
-            targetLabel.Location = new Point(25, 85);
-            targetLabel.Size = new Size(130, 25);
-            transactionGroup.Controls.Add(targetLabel);
-
-            transferTargetBox = new ComboBox();
-            transferTargetBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            transferTargetBox.Location = new Point(175, 83);
-            transferTargetBox.Size = new Size(220, 25);
+            transferTargetBox = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 83),
+                Size = new Size(220, 25)
+            };
             transferTargetBox.Items.Add("Savings");
             transferTargetBox.Items.Add("Checking");
             transferTargetBox.Items.Add("External Transfer Account");
             transferTargetBox.SelectedIndex = 0;
-            transactionGroup.Controls.Add(transferTargetBox);
 
-            depositButton = new Button();
-            depositButton.Text = "Deposit";
-            depositButton.Location = new Point(30, 135);
-            depositButton.Size = new Size(120, 50);
-            depositButton.BackColor = Color.FromArgb(45, 145, 75);
-            depositButton.ForeColor = Color.White;
-            depositButton.FlatStyle = FlatStyle.Flat;
+            Button depositButton = CreateColoredButton("Deposit", 30, 135, 120, 50, Color.FromArgb(45, 145, 75));
             depositButton.Click += DepositButton_Click;
-            transactionGroup.Controls.Add(depositButton);
 
-            withdrawButton = new Button();
-            withdrawButton.Text = "Withdraw";
-            withdrawButton.Location = new Point(168, 135);
-            withdrawButton.Size = new Size(120, 50);
-            withdrawButton.BackColor = Color.FromArgb(200, 120, 40);
-            withdrawButton.ForeColor = Color.White;
-            withdrawButton.FlatStyle = FlatStyle.Flat;
+            Button withdrawButton = CreateColoredButton("Withdraw", 168, 135, 120, 50, Color.FromArgb(200, 120, 40));
             withdrawButton.Click += WithdrawButton_Click;
-            transactionGroup.Controls.Add(withdrawButton);
 
-            transferButton = new Button();
-            transferButton.Text = "Transfer";
-            transferButton.Location = new Point(306, 135);
-            transferButton.Size = new Size(120, 50);
-            transferButton.BackColor = Color.FromArgb(90, 90, 190);
-            transferButton.ForeColor = Color.White;
-            transferButton.FlatStyle = FlatStyle.Flat;
+            Button transferButton = CreateColoredButton("Transfer", 306, 135, 120, 50, Color.FromArgb(90, 90, 190));
             transferButton.Click += TransferButton_Click;
-            transactionGroup.Controls.Add(transferButton);
 
-            refreshButton = new Button();
-            refreshButton.Text = "Refresh Status";
-            refreshButton.Location = new Point(75, 225);
-            refreshButton.Size = new Size(135, 40);
+            Button refreshButton = new Button
+            {
+                Text = "Refresh Status",
+                Location = new Point(75, 225),
+                Size = new Size(135, 40)
+            };
             refreshButton.Click += RefreshButton_Click;
-            transactionGroup.Controls.Add(refreshButton);
 
-            clearLogButton = new Button();
-            clearLogButton.Text = "Clear Log";
-            clearLogButton.Location = new Point(235, 225);
-            clearLogButton.Size = new Size(135, 40);
+            Button clearLogButton = new Button
+            {
+                Text = "Clear Log",
+                Location = new Point(235, 225),
+                Size = new Size(135, 40)
+            };
             clearLogButton.Click += ClearLogButton_Click;
-            transactionGroup.Controls.Add(clearLogButton);
 
-            selectedAccountLabel = new Label();
-            selectedAccountLabel.Location = new Point(25, 292);
-            selectedAccountLabel.Size = new Size(390, 25);
-            selectedAccountLabel.Font = new Font("Segoe UI", 9, FontStyle.Bold);
-            selectedAccountLabel.ForeColor = Color.FromArgb(25, 55, 95);
+            selectedAccountLabel = new Label
+            {
+                Location = new Point(25, 292),
+                Size = new Size(390, 25),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = Color.FromArgb(25, 55, 95)
+            };
+
+            transactionGroup.Controls.Add(CreateFieldLabel("Amount:", 25, 45));
+            transactionGroup.Controls.Add(amountBox);
+            transactionGroup.Controls.Add(CreateFieldLabel("Transfer Target:", 25, 85));
+            transactionGroup.Controls.Add(transferTargetBox);
+            transactionGroup.Controls.Add(depositButton);
+            transactionGroup.Controls.Add(withdrawButton);
+            transactionGroup.Controls.Add(transferButton);
+            transactionGroup.Controls.Add(refreshButton);
+            transactionGroup.Controls.Add(clearLogButton);
             transactionGroup.Controls.Add(selectedAccountLabel);
         }
 
         private void BuildStatusPanel()
         {
-            GroupBox statusGroup = new GroupBox();
-            statusGroup.Text = "Backend Status";
-            statusGroup.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            statusGroup.Location = new Point(30, 455);
-            statusGroup.Size = new Size(455, 220);
-            this.Controls.Add(statusGroup);
+            GroupBox statusGroup = CreateGroupBox("Shared Backend Status", 30, 455, 455, 220);
 
-            balanceLabel = MakeStatusLabel(25, 35);
+            balanceLabel = CreateStatusLabel(25, 35);
+            savingsLabel = CreateStatusLabel(25, 70);
+            transferLabel = CreateStatusLabel(25, 105);
+            atmCashLabel = CreateStatusLabel(25, 140);
+            maxCashLabel = CreateStatusLabel(25, 175);
+
             statusGroup.Controls.Add(balanceLabel);
-
-            savingsLabel = MakeStatusLabel(25, 70);
             statusGroup.Controls.Add(savingsLabel);
-
-            transferLabel = MakeStatusLabel(25, 105);
             statusGroup.Controls.Add(transferLabel);
-
-            atmCashLabel = MakeStatusLabel(25, 140);
             statusGroup.Controls.Add(atmCashLabel);
-
-            maxCashLabel = MakeStatusLabel(25, 175);
             statusGroup.Controls.Add(maxCashLabel);
-        }
-
-        private Label MakeStatusLabel(int x, int y)
-        {
-            Label label = new Label();
-            label.Location = new Point(x, y);
-            label.Size = new Size(395, 25);
-            label.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            return label;
         }
 
         private void BuildLogPanel()
         {
-            GroupBox logGroup = new GroupBox();
-            logGroup.Text = "Transaction Log / ReadAndWrite Storage";
-            logGroup.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            logGroup.Location = new Point(525, 455);
-            logGroup.Size = new Size(455, 220);
-            this.Controls.Add(logGroup);
+            GroupBox logGroup = CreateGroupBox("User Transaction Log", 525, 455, 455, 220);
 
-            cardStatusLabel = new Label();
-            cardStatusLabel.Location = new Point(20, 30);
-            cardStatusLabel.Size = new Size(410, 25);
-            cardStatusLabel.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            cardStatusLabel.ForeColor = Color.FromArgb(25, 55, 95);
+            cardStatusLabel = new Label
+            {
+                Location = new Point(20, 30),
+                Size = new Size(410, 25),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(25, 55, 95)
+            };
+
+            logBox = new ListBox
+            {
+                Location = new Point(20, 65),
+                Size = new Size(410, 135)
+            };
+
             logGroup.Controls.Add(cardStatusLabel);
-
-            logBox = new ListBox();
-            logBox.Location = new Point(20, 65);
-            logBox.Size = new Size(410, 135);
             logGroup.Controls.Add(logBox);
+        }
+
+        private GroupBox CreateGroupBox(string text, int x, int y, int width, int height)
+        {
+            GroupBox groupBox = new GroupBox
+            {
+                Text = text,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Location = new Point(x, y),
+                Size = new Size(width, height)
+            };
+
+            Controls.Add(groupBox);
+            return groupBox;
+        }
+
+        private Label CreateFieldLabel(string text, int x, int y)
+        {
+            return new Label
+            {
+                Text = text,
+                Location = new Point(x, y),
+                Size = new Size(130, 25)
+            };
+        }
+
+        private Label CreateStatusLabel(int x, int y)
+        {
+            return new Label
+            {
+                Location = new Point(x, y),
+                Size = new Size(395, 25),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+        }
+
+        private Label CreateSmallPanelLabel(string text, int x, int y)
+        {
+            return new Label
+            {
+                Text = text,
+                Location = new Point(x, y),
+                Size = new Size(120, 25)
+            };
+        }
+
+        private TextBox CreateSmallPanelTextBox(int x, int y, string text)
+        {
+            return new TextBox
+            {
+                Location = new Point(x, y),
+                Size = new Size(220, 25),
+                Text = text
+            };
+        }
+
+        private Button CreateColoredButton(string text, int x, int y, int width, int height, Color backColor)
+        {
+            return new Button
+            {
+                Text = text,
+                Location = new Point(x, y),
+                Size = new Size(width, height),
+                BackColor = backColor,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
         }
 
         private void CardTypeChanged(object sender, EventArgs e)
         {
-            UpdateCardMenu();
+            UpdateCardView();
         }
 
-        private void SourceAccountBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void UpdateCardView()
+        {
+            if (physicalRadio.Checked)
+            {
+                cardModeLabel.Text = "Physical mode: only the PIN is entered. Card data is read from the chip.";
+                physicalCardPanel.Visible = true;
+                virtualCardPanel.Visible = false;
+            }
+            else
+            {
+                cardModeLabel.Text = "Virtual mode: PIN, card number, CV2, and expiration are entered manually.";
+                physicalCardPanel.Visible = false;
+                virtualCardPanel.Visible = true;
+            }
+        }
+
+        private void SourceAccountChanged(object sender, EventArgs e)
         {
             if (activeCard != null)
             {
                 activeCard.SetAccount(GetSourceAccount());
-                AddLog("Active card source account changed to " + GetSourceAccount().GetAccountId() + ".");
+                AddLog($"Active card source changed to {GetSourceAccount().GetAccountId()}.");
             }
 
             RefreshDisplay();
-        }
-
-        private void UpdateCardMenu()
-        {
-            if (physicalRadio.Checked)
-            {
-                physicalInfoLabel.Text = "Physical mode: chip data is read automatically. Only PIN is entered.";
-                cardNumberBox.Enabled = false;
-                cv2Box.Enabled = false;
-                expirationBox.Enabled = false;
-                cardNumberBox.Text = "Read from chip";
-                cv2Box.Text = "Read from chip";
-                expirationBox.Text = "Read from chip";
-            }
-            else
-            {
-                physicalInfoLabel.Text = "Virtual mode: enter full card details manually.";
-                cardNumberBox.Enabled = true;
-                cv2Box.Enabled = true;
-                expirationBox.Enabled = true;
-
-                if (cardNumberBox.Text == "Read from chip") cardNumberBox.Text = "1234-5678-9999-0000";
-                if (cv2Box.Text == "Read from chip") cv2Box.Text = "123";
-                if (expirationBox.Text == "Read from chip") expirationBox.Text = "12/28";
-            }
         }
 
         private void CreateCardButton_Click(object sender, EventArgs e)
         {
             CardFactory factory = new CardFactory();
             Context context = new Context();
+
             context.SetPin(pinBox.Text.Trim());
 
             ProgramIF cardProgram;
@@ -417,14 +471,19 @@ namespace FinalProject
             {
                 factory.SetCard("Physical");
                 cardProgram = new PhysicalCardProgram();
+
+                context.SetCardNumber("1111-2222-3333-4444");
+                context.SetCv2("111");
+                context.SetExpirationDate("12/30");
             }
             else
             {
                 factory.SetCard("Virtual");
+                cardProgram = new VirtualCardProgram();
+
                 context.SetCardNumber(cardNumberBox.Text.Trim());
                 context.SetCv2(cv2Box.Text.Trim());
                 context.SetExpirationDate(expirationBox.Text.Trim());
-                cardProgram = new VirtualCardProgram();
             }
 
             activeCard = factory.GetCard();
@@ -433,21 +492,18 @@ namespace FinalProject
             cardProgram.SetCard(activeCard);
             cardProgram.SetContext(context);
             cardProgram.Perform();
+
             activeCard.SetValid();
 
             if (activeCard.GetValid())
             {
-                cardNumberBox.Text = activeCard.GetCardNumber();
-                cv2Box.Text = activeCard.GetCV2();
-                expirationBox.Text = activeCard.GetExpirationDate();
-
-                AddLog("CardFactory created a " + activeCard.GetType().Name + " card.");
-                AddLog(cardProgram.GetType().Name + " loaded card details into the card object.");
-                AddLog("Card is valid and connected to " + activeCard.GetAccount().GetAccountId() + ".");
+                AddLog($"Created a valid {activeCard.GetType().Name} card.");
+                AddLog($"Card connected to {activeCard.GetAccount().GetAccountId()}.");
             }
             else
             {
-                AddLog("Card validation failed. Check PIN/card data.");
+                AddLog("Card validation failed.");
+                MessageBox.Show("Card validation failed.");
             }
 
             RefreshDisplay();
@@ -455,7 +511,8 @@ namespace FinalProject
 
         private void DepositButton_Click(object sender, EventArgs e)
         {
-            if (!PrepareTransaction(out Transaction transaction)) return;
+            if (!PrepareTransaction(out Transaction transaction))
+                return;
 
             if (!RunDefaultFilter(transaction))
             {
@@ -464,33 +521,36 @@ namespace FinalProject
             }
 
             transaction.Deposit();
-            FinishTransaction(transaction, "Deposit", transaction.GetStatus());
+            FinishTransaction(transaction, "Deposit");
         }
 
         private void WithdrawButton_Click(object sender, EventArgs e)
         {
-            if (!PrepareTransaction(out Transaction transaction)) return;
+            if (!PrepareTransaction(out Transaction transaction))
+                return;
 
             if (!RunWithdrawalFilterChain(transaction))
             {
-                AddLog("Withdrawal blocked by DefaultFilter, MaximumDailyCashout, or CheckAvailableCash.");
+                AddLog("Withdrawal blocked by one of the filters.");
                 RefreshDisplay();
                 return;
             }
 
             transaction.Withdrawal();
-            FinishTransaction(transaction, "Withdrawal", transaction.GetStatus());
+            FinishTransaction(transaction, "Withdrawal");
         }
 
         private void TransferButton_Click(object sender, EventArgs e)
         {
-            if (!PrepareTransaction(out Transaction transaction)) return;
+            if (!PrepareTransaction(out Transaction transaction))
+                return;
 
             Account targetAccount = GetTransferTargetAccount();
+
             if (targetAccount == GetSourceAccount())
             {
                 MessageBox.Show("Transfer target must be different from the source account.");
-                AddLog("Transfer failed because source and target were the same account.");
+                AddLog("Transfer failed because source and target were the same.");
                 return;
             }
 
@@ -504,40 +564,37 @@ namespace FinalProject
             }
 
             transaction.Transfer();
-            FinishTransaction(transaction, "Transfer", transaction.GetStatus());
+            FinishTransaction(transaction, "Transfer");
         }
 
         private bool PrepareTransaction(out Transaction transaction)
         {
             transaction = null;
 
-            if (!CardReady()) return false;
-            if (!TryGetAmount(out decimal amount)) return false;
+            if (!CardReady())
+                return false;
+
+            if (!TryGetAmount(out decimal amount))
+                return false;
 
             activeCard.SetAccount(GetSourceAccount());
 
             transaction = new Transaction(activeCard);
             transaction.SetAmount(amount);
             transaction.SetData(atmData);
+
             return true;
         }
 
-        private void FinishTransaction(Transaction transaction, string type, bool success)
+        private void FinishTransaction(Transaction transaction, string transactionType)
         {
-            if (success)
+            if (transaction.GetStatus())
             {
-                readAndWrite.SaveTransaction(transaction);
-                readAndWrite.UpdateAccount(checkingAccount);
-                readAndWrite.UpdateAccount(savingsAccount);
-                readAndWrite.UpdateAccount(externalTransferAccount);
-
-                Transaction saved = readAndWrite.ReadTransaction(transaction.GetTransactionId());
-                string shortId = saved == null ? "not saved" : saved.GetTransactionId().Substring(0, 8);
-                AddLog(type + " successful: " + transaction.GetAmount().ToString("C") + " | Saved ID: " + shortId);
+                AddLog($"{transactionType} successful: {transaction.GetAmount():C}");
             }
             else
             {
-                AddLog(type + " failed. Check card, account balance, ATM cash, or limits.");
+                AddLog($"{transactionType} failed.");
             }
 
             RefreshDisplay();
@@ -545,49 +602,50 @@ namespace FinalProject
 
         private bool RunDefaultFilter(Transaction transaction)
         {
-            DefaultFilter defaultFilter = new DefaultFilter();
-            defaultFilter.SetTransaction(transaction);
-            defaultFilter.SetData(atmData);
-            defaultFilter.Register(company);
-            company.AddATM(defaultFilter);
-            return defaultFilter.Check();
+            FilterIF defaultFilter = new DefaultFilter();
+            return defaultFilter.Check(transaction);
         }
 
         private bool RunWithdrawalFilterChain(Transaction transaction)
         {
-            DefaultFilter defaultFilter = new DefaultFilter();
-            MaximumDailyCashout maxFilter = new MaximumDailyCashout();
-            CheckAvailableCash cashFilter = new CheckAvailableCash();
+            FilterIF defaultFilter = new DefaultFilter();
 
-            defaultFilter.SetFilter(maxFilter);
-            maxFilter.SetFilter(cashFilter);
+            MaximumDailyCashout maximumCashoutFilter = new MaximumDailyCashout(defaultFilter);
+            CheckAvailableCash availableCashFilter = new CheckAvailableCash(maximumCashoutFilter);
 
-            defaultFilter.SetTransaction(transaction);
-            defaultFilter.SetData(atmData);
-            defaultFilter.Register(company);
+            maximumCashoutFilter.SetData(atmData);
+            availableCashFilter.SetData(atmData);
 
-            company.AddATM(defaultFilter);
-            company.AddATM(maxFilter);
-            company.AddATM(cashFilter);
+            if (!defaultFilter.Check(transaction))
+                return false;
 
-            return defaultFilter.Check();
+            if (!maximumCashoutFilter.Check(transaction))
+                return false;
+
+            if (!availableCashFilter.Check(transaction))
+                return false;
+
+            return true;
         }
 
         private CardIF BuildTransferCard(Account targetAccount)
         {
             CardIF card = new Virtual();
+
             card.SetAccount(targetAccount);
             card.SetPIN("9999");
             card.SetCardNumber("9999-8888-7777-6666");
             card.SetCV2("555");
             card.SetExpirationDate("01/29");
             card.SetValid();
+
             return card;
         }
 
         private Account GetSourceAccount()
         {
-            if (sourceAccountBox != null && sourceAccountBox.SelectedItem != null && sourceAccountBox.SelectedItem.ToString() == "Savings")
+            if (sourceAccountBox.SelectedItem != null &&
+                sourceAccountBox.SelectedItem.ToString() == "Savings")
             {
                 return savingsAccount;
             }
@@ -597,10 +655,16 @@ namespace FinalProject
 
         private Account GetTransferTargetAccount()
         {
-            string selected = transferTargetBox.SelectedItem == null ? "Savings" : transferTargetBox.SelectedItem.ToString();
+            string selectedTarget = transferTargetBox.SelectedItem == null
+                ? "Savings"
+                : transferTargetBox.SelectedItem.ToString();
 
-            if (selected == "Checking") return checkingAccount;
-            if (selected == "External Transfer Account") return externalTransferAccount;
+            if (selectedTarget == "Checking")
+                return checkingAccount;
+
+            if (selectedTarget == "External Transfer Account")
+                return externalTransferAccount;
+
             return savingsAccount;
         }
 
@@ -646,42 +710,33 @@ namespace FinalProject
 
         private void RefreshDisplay()
         {
-            Account storedChecking = readAndWrite.ReadAccount("CHECKING-1001") ?? checkingAccount;
-            Account storedSavings = readAndWrite.ReadAccount("SAVINGS-1002") ?? savingsAccount;
-            Account storedExternal = readAndWrite.ReadAccount("EXTERNAL-2001") ?? externalTransferAccount;
+            balanceLabel.Text = $"Checking Balance: {checkingAccount.GetBalance():C}";
+            savingsLabel.Text = $"Savings Balance: {savingsAccount.GetBalance():C}";
+            transferLabel.Text = $"External Transfer Balance: {externalTransferAccount.GetBalance():C}";
+            atmCashLabel.Text = $"ATM Available Cash: {atmData.GetCash():C}";
+            maxCashLabel.Text = $"ATM Max Cashout: {atmData.GetMaximumCashOut():C}";
 
-            balanceLabel.Text = "Checking Balance: " + storedChecking.GetBalance().ToString("C");
-            savingsLabel.Text = "Savings Balance: " + storedSavings.GetBalance().ToString("C");
-            transferLabel.Text = "External Transfer Balance: " + storedExternal.GetBalance().ToString("C");
-            atmCashLabel.Text = "ATM Available Cash: " + atmData.GetCash().ToString("C");
-            maxCashLabel.Text = "ATM Max Cashout: " + atmData.GetMaximumCashOut().ToString("C");
+            selectedAccountLabel.Text = $"Selected Source: {GetSourceAccount().GetAccountId()}";
 
-            if (selectedAccountLabel != null)
+            if (activeCard == null)
             {
-                selectedAccountLabel.Text = "Selected Source: " + GetSourceAccount().GetAccountId();
+                cardStatusLabel.Text = "Card Status: No card created";
             }
-
-            if (cardStatusLabel != null)
+            else if (activeCard.GetValid())
             {
-                if (activeCard == null)
-                {
-                    cardStatusLabel.Text = "Card Status: No card created";
-                }
-                else if (activeCard.GetValid())
-                {
-                    cardStatusLabel.Text = "Card Status: Valid " + activeCard.GetType().Name + " Card | " + activeCard.GetAccount().GetAccountId();
-                }
-                else
-                {
-                    cardStatusLabel.Text = "Card Status: Invalid";
-                }
+                cardStatusLabel.Text =
+                    $"Card Status: Valid {activeCard.GetType().Name} Card | {activeCard.GetAccount().GetAccountId()}";
+            }
+            else
+            {
+                cardStatusLabel.Text = "Card Status: Invalid";
             }
         }
 
         private void RefreshButton_Click(object sender, EventArgs e)
         {
             RefreshDisplay();
-            AddLog("Status refreshed. Company observes " + company.GetATM().Count + " filter object(s).");
+            AddLog($"Status refreshed. Company observes {company.GetATMs().Count} observable object(s).");
         }
 
         private void ClearLogButton_Click(object sender, EventArgs e)
@@ -691,10 +746,7 @@ namespace FinalProject
 
         private void AddLog(string message)
         {
-            if (logBox != null)
-            {
-                logBox.Items.Insert(0, DateTime.Now.ToString("hh:mm:ss tt") + " - " + message);
-            }
+            logBox?.Items.Insert(0, $"{DateTime.Now:hh:mm:ss tt} - {message}");
         }
     }
 }

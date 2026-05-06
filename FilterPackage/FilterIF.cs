@@ -9,16 +9,9 @@ using System.Threading.Tasks;
 
 namespace FinalProject.FilterPackage
 {
-    public interface FilterIF:ObservableIF
+    public interface FilterIF
     {
-        void SetTransaction(TransactionIF transaction);
-        TransactionIF GetTransaction();
-        void SetFilter(FilterIF filter);
-        FilterIF GetFilter();
-        void Register(CompanyIF company);
-        void RemoveObserver();
-        void SetData(Data data);
-        Data GetData();
+       bool Check(TransactionIF transaction);
     }
 
 }

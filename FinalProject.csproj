@@ -47,7 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ATMPackage\Data.cs" />
-    <Compile Include="ATMPackage\ReadWrite.cs" />
+    <Compile Include="ATMPackage\ObservableIF.cs" />
     <Compile Include="CardPackage\Account.cs" />
     <Compile Include="CardPackage\Card.cs" />
     <Compile Include="CardPackage\CardFactory.cs" />
@@ -55,13 +55,12 @@
     <Compile Include="CardPackage\Physical.cs" />
     <Compile Include="CardPackage\Virtual.cs" />
     <Compile Include="CompanyPackage\Company.cs" />
-    <Compile Include="CompanyPackage\CompanyIF.cs" />
+    <Compile Include="CompanyPackage\ObserverIF.cs" />
     <Compile Include="FilterPackage\CheckAvailableCash.cs" />
     <Compile Include="FilterPackage\DefaultFilter.cs" />
     <Compile Include="FilterPackage\Filter.cs" />
     <Compile Include="FilterPackage\FilterIF.cs" />
     <Compile Include="FilterPackage\MaximumDailyCashout.cs" />
-    <Compile Include="FilterPackage\ObservableIF.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace FinalProject.CompanyPackage
 {
-    public class Company : CompanyIF
+    public class Company : ObserverIF
     {
         private List<ObservableIF> atms;
         private Data data;
@@ -23,7 +23,7 @@ namespace FinalProject.CompanyPackage
             }
         }
 
-        public List<ObservableIF> GetATM()
+        public List<ObservableIF> GetATMs()
         {
             return atms;
         }

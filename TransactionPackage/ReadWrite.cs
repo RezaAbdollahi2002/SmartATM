@@ -1,95 +1,119 @@
-﻿using FinalProject.CardPackage;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
-namespace FinalProject.TransactionPackage
+namespace FinalProject.TransactionPackages
 {
-    public class ReadAndWrite
+    public class ReadWrite
     {
-        private List<Transaction> transactions;
-        private List<Account> accounts;
+        private int waitingForReadLock = 0;
+        private int outstandingReadLocks = 0;
 
-        private readonly object transactionLock = new object();
-        private readonly object accountLock = new object();
+        private Thread writeLockedThread = null;
+        private readonly List<Thread> waitingForWriteLock = new List<Thread>();
 
-        public ReadAndWrite()
+        public ReadWrite()
         {
-            transactions = new List<Transaction>();
-            accounts = new List<Account>();
         }
 
-        public void SaveTransaction(Transaction transaction)
+        public void ReadLock()
         {
-            if (transaction == null) return;
-            lock (transactionLock)
+            lock (this)
             {
-                transactions.Add(transaction);
-            }
-        }
-
-        public Transaction ReadTransaction(string transactionId)
-        {
-            lock (transactionLock)
-            {
-                foreach (Transaction transaction in transactions)
+                while (writeLockedThread != null || waitingForWriteLock.Count > 0)
                 {
-                    if (transaction.GetTransactionId() == transactionId)
-                    {
-                        return transaction;
-                    }
-                }
-            }
-            return null;
-        }
-
-        public List<Transaction> GetTransactions()
-        {
-            lock (transactionLock)
-            {
-                return new List<Transaction>(transactions);
-            }
-        }
-
-        public void SaveAccount(Account account)
-        {
-            if (account == null) return;
-            lock (accountLock)
-            {
-                accounts.Add(account);
-            }
-        }
-
-        public Account ReadAccount(string accountId)
-        {
-            lock (accountLock)
-            {
-                foreach (Account account in accounts)
-                {
-                    if (account.GetAccountId() == accountId)
-                    {
-                        return account;
-                    }
-                }
-            }
-            return null;
-        }
-
-        public void UpdateAccount(Account account)
-        {
-            if (account == null) return;
-
-            lock (accountLock)
-            {
-                for (int i = 0; i < accounts.Count; i++)
-                {
-                    if (accounts[i].GetAccountId() == account.GetAccountId())
-                    {
-                        accounts[i] = account;
-                        return;
-                    }
+                    waitingForReadLock++;
+                    Monitor.Wait(this);
+                    waitingForReadLock--;
                 }
 
-                accounts.Add(account);
+                outstandingReadLocks++;
+            }
+        }
+
+        public void WriteLock()
+        {
+            Thread currentThread = Thread.CurrentThread;
+
+            lock (this)
+            {
+                if (writeLockedThread == null && outstandingReadLocks == 0)
+                {
+                    writeLockedThread = currentThread;
+                    return;
+                }
+
+                waitingForWriteLock.Add(currentThread);
+            }
+
+            lock (currentThread)
+            {
+                while (currentThread != writeLockedThread)
+                {
+                    Monitor.Wait(currentThread);
+                }
+            }
+
+            lock (this)
+            {
+                waitingForWriteLock.Remove(currentThread);
+            }
+        }
+
+        public void Done()
+        {
+            lock (this)
+            {
+                if (Thread.CurrentThread == writeLockedThread)
+                {
+                    FinishWriteLock();
+                    return;
+                }
+
+                if (outstandingReadLocks > 0)
+                {
+                    FinishReadLock();
+                    return;
+                }
+
+                throw new InvalidOperationException("Thread does not own the lock.");
+            }
+        }
+
+        private void FinishReadLock()
+        {
+            outstandingReadLocks--;
+
+            if (outstandingReadLocks == 0 && waitingForWriteLock.Count > 0)
+            {
+                AssignNextWriter();
+            }
+        }
+
+        private void FinishWriteLock()
+        {
+            if (waitingForWriteLock.Count > 0)
+            {
+                AssignNextWriter();
+            }
+            else
+            {
+                writeLockedThread = null;
+
+                if (waitingForReadLock > 0)
+                {
+                    Monitor.PulseAll(this);
+                }
+            }
+        }
+
+        private void AssignNextWriter()
+        {
+            writeLockedThread = waitingForWriteLock[0];
+
+            lock (writeLockedThread)
+            {
+                Monitor.PulseAll(writeLockedThread);
             }
         }
     }

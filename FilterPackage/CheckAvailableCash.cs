@@ -1,28 +1,21 @@
-﻿namespace FinalProject.FilterPackage
+﻿using FinalProject.TransactionPackage;
+
+namespace FinalProject.FilterPackage
 {
     public class CheckAvailableCash : Filter
     {
-        public CheckAvailableCash() { }
+        public CheckAvailableCash(FilterIF filter):base(filter) { }
 
-        public override bool Check()
+        public override bool Check(TransactionIF transaction)
         {
             if (data == null || transaction == null) return false;
 
             if (transaction.GetAmount() > data.GetCash())
             {
-                Notify();
+                this.GetData().Notify();
                 return false;
             }
-
-            return CheckNext();
-        }
-
-        private void Notify()
-        {
-            if (company != null)
-            {
-                company.Notify();
-            }
+            return true;    
         }
     }
 }
